@@ -6,6 +6,10 @@ from app import app
 from app import server
 import cv2
 import numpy as np
+from openvino_pipeline.openvino_gaze_estimation_pipeline import OpenVINOPipeline
+from openvino_pipeline.face_detection import FaceDetectionModel
+from openvino_pipeline.visualization import visualize_bbox
+
 
 class VideoCamera(object):
     def __init__(self):
@@ -16,32 +20,44 @@ class VideoCamera(object):
 
     def get_frame(self):
         success, image = self.video.read()
-        if success:
-            ret, jpeg = cv2.imencode('.jpg', image)
-        else:
-            ret, jpeg = cv2.imencode(".jpg", np.zeros((480, 640)))
-        return jpeg.tobytes()
+        width = self.video.get(3)
+        height = self.video.get(4)
+        if not success:
+            image = np.zeros((height, width))
+        return image
 
 class PlaceholderCamera:
     @staticmethod
     def get_frame():
-        ret, jpeg = cv2.imencode(".jpg", np.zeros((480, 640)))
-        return jpeg.tobytes()
+        return np.zeros((480, 640))
 
-def gen(camera):
+class PlaceholderPipeline:
+    def __call__(self, img):
+        return []
+
+def gen(camera, pipeline):
     while True:
         frame = camera.get_frame()
+        bboxes = pipeline(frame)
+        if len(bboxes):
+            for bbox in bboxes:
+                frame = visualize_bbox(frame, bbox, (10, 245, 10))
+        ret, jpeg = cv2.imencode('.jpg', frame)
         yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+               b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
 
 @server.route('/video_feed')
 def video_feed():
-    return Response(gen(VideoCamera()),
+    print("We are in video feed")
+    face_detector = FaceDetectionModel("openvino_models/intel/face-detection-retail-0004/FP16")
+    print("We are in video feed and loaded model")
+    return Response(gen(VideoCamera(), OpenVINOPipeline(face_detector)),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @server.route("/placeholder_video_feed")
 def placeholder_video_feed():
-    return Response(gen(PlaceholderCamera()),
+    print("We are in placeholder")
+    return Response(gen(PlaceholderCamera(), PlaceholderPipeline()),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.callback([
@@ -49,6 +65,7 @@ Output("rec-img", "src"), Output("rec-button", "children")
 ],
 [Input("rec-button", "n_clicks")])
 def start_record(n_clicks):
+    print("Button clicked:", n_clicks)
     if n_clicks % 2 == 0:
         return "/placeholder_video_feed", "Start Video"
     else:
