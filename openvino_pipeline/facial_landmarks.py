@@ -83,16 +83,18 @@ class FacialLandmarkDetection:
             landmark_points.append(point)
             j += 2
 
+        eye_dist = abs(landmark_points[1][0] - landmark_points[0][0]) * 0.33
+
         left_eye_coord = np.array([
-            landmark_points[0][0] - 20, landmark_points[0][1] - 10,
-            landmark_points[0][0] + 20, landmark_points[0][1] + 10
+            landmark_points[0][0] - eye_dist, landmark_points[0][1] - eye_dist / 2,
+            landmark_points[0][0] + eye_dist, landmark_points[0][1] + eye_dist / 2
         ])
         right_eye_coord = np.array([
-            landmark_points[1][0] - 20, landmark_points[1][1] - 10,
-            landmark_points[1][0] + 20, landmark_points[1][1] + 10
+            landmark_points[1][0] - eye_dist, landmark_points[1][1] - eye_dist / 2,
+            landmark_points[1][0] + eye_dist, landmark_points[1][1] + eye_dist / 2
         ])
 
-        return landmark_points, left_eye_coord, right_eye_coord
+        return landmark_points, left_eye_coord.astype(np.int32), right_eye_coord.astype(np.int32)
 
     def process_sample(self, image):
         data = self.preprocess_input(image)
