@@ -6,9 +6,8 @@ from app import app
 from app import server
 import cv2
 import numpy as np
-from openvino_pipeline.openvino_gaze_estimation_pipeline import OpenVINOPipeline
-from openvino_pipeline.face_detection import FaceDetectionModel
-from openvino_pipeline.visualization import visualize_bbox
+from openvino_pipeline import OpenVINOPipeline, FaceDetectionModel, FacialLandmarkDetection, GazeEstimation, HeadPoseEstimation
+from openvino_pipeline import visualize_result
 
 
 class VideoCamera(object):
@@ -33,15 +32,13 @@ class PlaceholderCamera:
 
 class PlaceholderPipeline:
     def __call__(self, img):
-        return []
+        return [[]] * 5
 
 def gen(camera, pipeline):
     while True:
         frame = camera.get_frame()
-        bboxes = pipeline(frame)
-        if len(bboxes):
-            for bbox in bboxes:
-                frame = visualize_bbox(frame, bbox, (10, 245, 10))
+        result = pipeline(frame)
+        frame = visualize_result(frame, result)
         ret, jpeg = cv2.imencode('.jpg', frame)
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
@@ -50,8 +47,11 @@ def gen(camera, pipeline):
 def video_feed():
     print("We are in video feed")
     face_detector = FaceDetectionModel("openvino_models/intel/face-detection-retail-0004/FP16")
-    print("We are in video feed and loaded model")
-    return Response(gen(VideoCamera(), OpenVINOPipeline(face_detector)),
+    landmarks_model = FacialLandmarkDetection("openvino_models/intel/landmarks-regression-retail-0009/FP16")
+    head_pose_model = HeadPoseEstimation("openvino_models/intel/head-pose-estimation-adas-0001/FP16")
+    gaze_model = GazeEstimation("openvino_models/intel/gaze-estimation-adas-0002/FP16")
+    print("We are in video feed and loaded models")
+    return Response(gen(VideoCamera(), OpenVINOPipeline(face_detector, landmarks_model, head_pose_model, gaze_model)),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @server.route("/placeholder_video_feed")
@@ -84,13 +84,19 @@ layout = html.Div(
         dark=True,
     ),
         html.H2("Camera"),
-        html.Img(id="rec-img", src="/placeholder_video_feed"),
-        html.Button('Start Video', id="rec-button",n_clicks=0, className = "graphButtons")
+        html.Div([
+            html.Img(id="rec-img", src="/placeholder_video_feed"),
+            html.Button('Start Video', id="rec-button", n_clicks=0, className="graphButtons")
+        ],
+        style={
+            "text-align": "center"
+        })
+
 
 
     ],
     style={
-        "background-image": 'url(/assets/background_2.jpg)',
+        "background-image": 'url(/assets/background_2.png)',
         "background-repeat": "no-repeat",
         "background-position": "center",
         "background-size": "cover",

@@ -6,6 +6,27 @@ LINE_THINKNESS = 3
 NORM_HEIGHT = 591
 
 
+def visualize_result(img, result):
+    bboxes, le, re, head_pose, gaze = result
+
+    # TODO: landmark model with batch
+    # assert len(bboxes) == 1
+
+    for box in bboxes:
+        hp_origin = (60, 60)
+        box_1 = [le[0] + box[0], le[1] + box[1], le[2] + box[0], le[3] + box[1]]
+        box_2 = [re[0] + box[0], re[1] + box[1], re[2] + box[0], re[3] + box[1]]
+
+        img = visualize_bbox(img, box, (10, 245, 10))  # draw face box
+        img = visualize_bbox(img, box_1, (255, 0, 0))  # draw eye boxes
+        img = visualize_bbox(img, box_2, (255, 0, 0))
+
+        img = draw_3d_axis(img, head_pose, hp_origin)  # draw head pose
+        if gaze is not None:
+            img = draw_gaze(img, box_1, box_2, gaze)
+    return img
+
+
 def visualize_bbox(img, bbox, bbox_color):
     img_h, img_w, _ = img.shape
     x1, y1, x2, y2 = bbox[:4]

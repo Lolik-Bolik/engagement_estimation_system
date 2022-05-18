@@ -71,7 +71,7 @@ index_page =  html.Div(children=[
     cards
 ],
     style={
-        "background-image": 'url(/assets/background_2.jpg)',
+        "background-image": 'url(/assets/background_2.png)',
         "background-repeat": "no-repeat",
         "background-position": "center",
         "background-size": "cover",

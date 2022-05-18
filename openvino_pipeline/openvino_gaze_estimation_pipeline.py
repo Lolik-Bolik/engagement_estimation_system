@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 from openvino_pipeline.face_detection import FaceDetectionModel
 from openvino_pipeline.facial_landmarks import FacialLandmarkDetection
-from openvino_pipeline.visualization import visualize_bbox, draw_3d_axis, draw_gaze
+from openvino_pipeline.visualization import visualize_result
 from openvino_pipeline.head_pose import HeadPoseEstimation
 from openvino_pipeline.gaze_estimation import GazeEstimation
 
@@ -88,7 +88,7 @@ class OpenVINOPipeline:
                 gaze = None
             return bboxes, left_eye_coord, right_eye_coord, head_pose, gaze
         else:
-            return None
+            return [[]] * 5
 
 
 if __name__ == "__main__":
@@ -126,23 +126,7 @@ if __name__ == "__main__":
         result = pipeline.run_pipeline(img)
 
         if result is not None:
-            bboxes, le, re, head_pose, gaze = result
-
-            # TODO: landmark model with batch
-            # assert len(bboxes) == 1
-
-            for box in bboxes:
-                hp_origin = (60, 60)
-                box_1 = [le[0] + box[0], le[1] + box[1], le[2] + box[0], le[3] + box[1]]
-                box_2 = [re[0] + box[0], re[1] + box[1], re[2] + box[0], re[3] + box[1]]
-
-                img = visualize_bbox(img, box, (10, 245, 10))  # draw face box
-                img = visualize_bbox(img, box_1, (255, 0, 0))  # draw eye boxes
-                img = visualize_bbox(img, box_2, (255, 0, 0))
-
-                img = draw_3d_axis(img, head_pose, hp_origin)  # draw head pose
-                if gaze is not None:
-                    img = draw_gaze(img, box_1, box_2, gaze)
+            img = visualize_result(img, result)
 
         cv2.imshow("", img)
         key = cv2.waitKey(5)
