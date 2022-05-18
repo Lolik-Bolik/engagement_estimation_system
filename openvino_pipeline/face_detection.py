@@ -47,7 +47,6 @@ class FaceDetectionModel:
         if not len(model_result[0]):
             return [None]
         result, input_info = model_result
-        postprocessed_result = []
         scale, pads = input_info
         h, w = self.input_height, self.input_width
         original_h = int((h - (pads[0] + pads[2])) / scale)
@@ -69,11 +68,10 @@ class FaceDetectionModel:
                     np.clip((box[6] * h - pads[0]) / scale, 0, original_h),
                 )
                 score = float(box[2])
-                class_name = self.class_names[int(box[1])]
-                image_predictions.append((x1, y1, x2, y2, score, class_name))
-        postprocessed_result.append(image_predictions)
+                # class_name = self.class_names[int(box[1])]
+                image_predictions.append((x1, y1, x2, y2, score))
 
-        return postprocessed_result
+        return np.array(image_predictions)
 
     def forward(self, data):
         data[0] = [
@@ -85,4 +83,4 @@ class FaceDetectionModel:
         data = self.preprocess(image)
         output = self.forward(data)
         results = self.postprocess(output)
-        return results[0]
+        return results
