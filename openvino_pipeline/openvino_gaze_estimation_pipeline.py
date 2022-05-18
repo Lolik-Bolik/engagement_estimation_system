@@ -4,7 +4,8 @@ import cv2
 import numpy as np
 from openvino_pipeline.face_detection import FaceDetectionModel
 from openvino_pipeline.facial_landmarks import FacialLandmarkDetection
-from openvino_pipeline.visualization import visualize_bbox
+from openvino_pipeline.visualization import visualize_bbox, draw_3d_axis
+from openvino_pipeline.head_pose import HeadPoseEstimation
 
 
 class VideoSource:
@@ -24,9 +25,10 @@ class VideoSource:
 
 
 class OpenVINOPipeline:
-    def __init__(self, face_detector, landmarks_model):
+    def __init__(self, face_detector, landmarks_model, head_pose_model):
         self.face_detector = face_detector
         self.landmarks_model = landmarks_model
+        self.head_pose_model = head_pose_model
 
     def __call__(self, img):
         return self.run_pipeline(img)
@@ -57,9 +59,10 @@ class OpenVINOPipeline:
         bboxes = self.face_detector.process_sample(img)
         faces = self.get_face_crops(img, bboxes)
         if faces is not None:
+            head_pose = self.head_pose_model.process_sample(faces)
             landmarks, left_eye_coord, right_eye_coord = self.landmarks_model.process_sample(faces)
             left_eye, right_eye = self.get_eye_crops(faces, left_eye_coord, right_eye_coord)
-            return bboxes, left_eye_coord, right_eye_coord
+            return bboxes, left_eye_coord, right_eye_coord, head_pose
         else:
             return None
 
@@ -74,6 +77,8 @@ if __name__ == "__main__":
                         help="Path to face detector weights")
     parser.add_argument('-lm_path', '--landmarks_model_path', type=str,
                         help="Path to facial landmarks model weights")
+    parser.add_argument('-hp_path', '--head_pose_path', type=str,
+                        help="Path to head pose estimation model")
     args = parser.parse_args()
 
     camera = not args.video
@@ -86,24 +91,28 @@ if __name__ == "__main__":
     video_source = VideoSource(0 if camera else args.video)
     face_detector = FaceDetectionModel(args.face_detection_path)
     landmarks_model = FacialLandmarkDetection(args.landmarks_model_path)
-    pipeline = OpenVINOPipeline(face_detector, landmarks_model)
+    head_pose_model = HeadPoseEstimation(args.head_pose_path)
+
+    pipeline = OpenVINOPipeline(face_detector, landmarks_model, head_pose_model)
     while True:
         img = video_source.get_frame()
         result = pipeline.run_pipeline(img)
 
         if result is not None:
-            bboxes, le, re = result
+            bboxes, le, re, head_pose = result
 
             # TODO: landmark model with batch
-            assert len(bboxes) == 1
+            # assert len(bboxes) == 1
 
             for box in bboxes:
+                hp_origin = (60, 60)
                 img = visualize_bbox(img, box, (10, 245, 10))
                 if le is not None:
                     box_1 = [le[0] + box[0], le[1] + box[1], le[2] + box[0], le[3] + box[1]]
                     box_2 = [re[0] + box[0], re[1] + box[1], re[2] + box[0], re[3] + box[1]]
                     img = visualize_bbox(img, box_1, (255, 0, 0))
                     img = visualize_bbox(img, box_2, (255, 0, 0))
+                img = draw_3d_axis(img, head_pose, hp_origin)
 
         cv2.imshow("", img)
         key = cv2.waitKey(5)
