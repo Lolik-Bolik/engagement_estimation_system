@@ -9,7 +9,7 @@ class FacialLandmarkDetection:
     Class for the Facial Landmark Detection Model.
     '''
 
-    def __init__(self, model_path, device='CPU', extensions=None):
+    def __init__(self, model_path):
         model_xml = os.path.join(model_path, "landmarks-regression-retail-0009.xml")
         model_bin = os.path.join(model_path, "landmarks-regression-retail-0009.bin")
         self.core = IECore()

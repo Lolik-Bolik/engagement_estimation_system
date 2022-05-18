@@ -50,3 +50,17 @@ def draw_3d_axis(image, head_pose, origin, size=50):
     cv2.line(image, (origin_x, origin_y), (int(x3), int(y3)), (255, 0, 0), 2)
 
     return image
+
+
+def draw_gaze(img, left_eye_coord, right_eye_coord, gaze):
+    re_x = (int(right_eye_coord[0] + right_eye_coord[2])) // 2
+    re_y = (int(right_eye_coord[1] + right_eye_coord[3])) // 2
+    le_x = (int(left_eye_coord[0] + left_eye_coord[2])) // 2
+    le_y = (int(left_eye_coord[1] + left_eye_coord[3])) // 2
+
+    x, y = (gaze * 100).astype(int)[:2]
+    img = cv2.arrowedLine(img, (le_x, le_y), (le_x + x, le_y - y), (255, 0, 255), 3)
+    img = cv2.arrowedLine(img, (re_x, re_y), (re_x + x, re_y - y), (255, 0, 255), 3)
+
+    return img
+
