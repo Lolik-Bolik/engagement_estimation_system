@@ -1,15 +1,16 @@
 import os
 import cv2
+from tqdm import tqdm
 
 phases = ['Train', 'Test', 'Validation']
 for phase in phases:
-    path = os.path.join('/path/to/video/files/', phase)
+    path = os.path.join('data/DAiSEE/DataSet', phase)
     subjects = os.listdir(path)
 
     for subject in subjects:
         print(phase, subject, flush=True)
         videos = os.listdir(os.path.join(path, subject))
-        for video in videos:
+        for video in tqdm(videos):
             videoPath = os.path.join(path, subject, video, os.listdir(os.path.join(path, subject, video))[0])
             videoPathFrames = '/'.join(videoPath.split('.')[0].split('/')[:-1]).replace(phase, phase + 'Frames')
             os.makedirs(videoPathFrames, exist_ok=True)

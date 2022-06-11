@@ -13,7 +13,9 @@ from utils import get_dataloader
 
 torch.manual_seed(0)
 num_epochs = 100
-batch_size = 4
+batch_size = 16
+val_interval = 5
+exp_id = 3
 lr = .001
 use_cuda = True
 device = torch.device("cuda" if use_cuda else "cpu")
@@ -22,9 +24,9 @@ print("Device being used:", device, flush=True)
 
 dataloader = get_dataloader(batch_size,
                             'train.csv',
-                            os.path.join(os.getcwd(), 'images_train'),
+                            os.path.join(os.getcwd(), 'data/DAiSEE/DataSet/TrainFrames'),
                             'test.csv',
-                            os.path.join(os.getcwd(), 'images_test'))
+                            os.path.join(os.getcwd(), 'data/DAiSEE/DataSet/TestFrames'))
 dataset_sizes = {x: len(dataloader[x].dataset) for x in ['train', 'test']}
 print(dataset_sizes, flush=True)
 
@@ -38,8 +40,11 @@ criterion = nn.CrossEntropyLoss().to(device)
 softmax = nn.Softmax()
 
 for epoch in range(num_epochs):
-
+ 
     for phase in ['train', 'test']:
+
+        if phase == "test" and epoch % val_interval !=0:
+            continue 
 
         running_loss = .0
         y_trues = np.empty([0])
@@ -50,7 +55,7 @@ for epoch in range(num_epochs):
         else:
             model.eval()
 
-        for inputs, labels in tqdm(dataloader[phase], disable=True):
+        for inputs, labels in tqdm(dataloader[phase], disable=False):
             inputs = inputs.to(device)
             labels = labels.long().squeeze().to(device)
 
@@ -78,3 +83,9 @@ for epoch in range(num_epochs):
         print('\nconfusion matrix\n' + str(confusion_matrix(y_trues, y_preds)))
         print('\naccuracy\t' + str(accuracy_score(y_trues, y_preds)))
 
+        if phase == "test":
+            save_path = os.path.join(os.getcwd(), "saves", str(exp_id))
+            if not os.path.exists(save_path):
+                os.makedirs(save_path)
+            save_path = os.path.join(save_path, f"model_epoch_{epoch}.pth")
+            torch.save(model.state_dict(), save_path)

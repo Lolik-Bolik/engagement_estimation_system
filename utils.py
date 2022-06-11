@@ -13,7 +13,7 @@ def generate_dataloader(batch_size, csv, root):
     return DataLoader(dataset,
                       batch_size=batch_size,
                       shuffle=True,
-                      num_workers=4)
+                      num_workers=16)
 
 
 def get_dataloader(batch_size, csv_train, root_train, csv_test, root_test):
