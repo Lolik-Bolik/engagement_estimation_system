@@ -17,7 +17,7 @@ class ResTCN(nn.Module):
     def __init__(self):
         super(ResTCN, self).__init__()
 
-        self.spatial_feat_dim = 32
+        self.spatial_feat_dim = 512
         self.num_classes = 4
         self.nhid = 128
         self.levels = 8
