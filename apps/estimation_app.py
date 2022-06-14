@@ -13,7 +13,7 @@ from openvino_pipeline.visualization import visualize_bbox
 
 class VideoCamera(object):
     def __init__(self):
-        self.video = cv2.VideoCapture(0)
+        self.video = cv2.VideoCapture("/home/pavel/Downloads/5100462077.avi")
 
     def __del__(self):
         self.video.release()
@@ -35,13 +35,13 @@ class PlaceholderPipeline:
     def __call__(self, img):
         return []
 
-def gen(camera, pipeline):
+def gen(camera, pipeline=None):
     while True:
         frame = camera.get_frame()
-        bboxes = pipeline(frame)
-        if len(bboxes):
-            for bbox in bboxes:
-                frame = visualize_bbox(frame, bbox, (10, 245, 10))
+        # bboxes = pipeline(frame)
+        # if len(bboxes):
+        #     for bbox in bboxes:
+        #         frame = visualize_bbox(frame, bbox, (10, 245, 10))
         ret, jpeg = cv2.imencode('.jpg', frame)
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
@@ -49,15 +49,15 @@ def gen(camera, pipeline):
 @server.route('/video_feed')
 def video_feed():
     print("We are in video feed")
-    face_detector = FaceDetectionModel("openvino_models/intel/face-detection-retail-0004/FP16")
+    # face_detector = FaceDetectionModel("openvino_models/intel/face-detection-retail-0004/FP16")
     print("We are in video feed and loaded model")
-    return Response(gen(VideoCamera(), OpenVINOPipeline(face_detector)),
+    return Response(gen(VideoCamera()), #OpenVINOPipeline(face_detector)),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @server.route("/placeholder_video_feed")
 def placeholder_video_feed():
     print("We are in placeholder")
-    return Response(gen(PlaceholderCamera(), PlaceholderPipeline()),
+    return Response(gen(PlaceholderCamera()),# PlaceholderPipeline()),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.callback([
@@ -84,8 +84,40 @@ layout = html.Div(
         dark=True,
     ),
         html.H2("Camera"),
-        html.Img(id="rec-img", src="/placeholder_video_feed"),
-        html.Button('Start Video', id="rec-button",n_clicks=0, className = "graphButtons")
+        html.Div([html.Img(id="rec-img", src="/placeholder_video_feed",
+                           style={
+                               "float": "left",
+                               "width": "30%",
+                               "margin-right": "1%",
+                               "margin-bottom": "0.5em"
+                           }),
+                  html.Div([html.Button('Start Video', id="rec-button",n_clicks=0, className="graphButtons",
+                              )],
+                           style={
+                               "float": "left",
+                               "width": "5%",
+                               "margin-right": "1%",
+                               "margin-bottom": "0.5em",
+                               "padding-top": "300px"
+                           }
+                           ),
+                  html.Iframe(width=800, height=800, src="https://www.youtube.com/embed/LHh5wFYHYOg",
+                              title="YouTube video player",
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen",
+                              style={
+                                  "float": "left",
+                                  "width": "35%",
+                                  "margin-right": "1%",
+                                  "margin-bottom": "0.5em"
+                              }
+                              )
+                  ],
+                 style={
+                     # "display": "inline-block",
+                     # "margin": "auto",
+                     "width": "100%",
+                     "height": "100%"
+                 }),
 
 
     ],
