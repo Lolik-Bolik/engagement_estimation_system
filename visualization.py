@@ -22,6 +22,12 @@ def visualize_bbox(img, bbox, bbox_color):
     return img
 
 
+def visualize_label(img, label):
+    cv2.putText(img, f"Engagement Level: {label}", (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2,
+                cv2.LINE_AA)
+    return img
+
+
 def draw_3d_axis(image, head_pose, origin, size=50):
     # From https://github.com/openvinotoolkit/open_model_zoo/blob/b1ff98b64a6222cf6b5f3838dc0271422250de95/demos/gaze_estimation_demo/cpp/src/results_marker.cpp#L50
     origin_x, origin_y = origin

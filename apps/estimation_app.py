@@ -6,20 +6,22 @@ from app import app
 from app import server
 import cv2
 import numpy as np
-from openvino_pipeline.openvino_gaze_estimation_pipeline import OpenVINOPipeline
-from openvino_pipeline.face_detection import FaceDetectionModel
-from openvino_pipeline.visualization import visualize_bbox
+from tcn_pipeline.tcn_pipeline import TCNPipeline
+from visualization import visualize_label
+from tcn_pipeline.ResTCN import ResTCN
+import torch
 
 
 class VideoCamera(object):
     def __init__(self):
-        self.video = cv2.VideoCapture("/home/pavel/Downloads/5100462077.avi")
+        self.video = cv2.VideoCapture(0)
 
     def __del__(self):
         self.video.release()
 
     def get_frame(self):
         success, image = self.video.read()
+        # print(image)
         width = self.video.get(3)
         height = self.video.get(4)
         if not success:
@@ -38,10 +40,10 @@ class PlaceholderPipeline:
 def gen(camera, pipeline=None):
     while True:
         frame = camera.get_frame()
-        # bboxes = pipeline(frame)
-        # if len(bboxes):
-        #     for bbox in bboxes:
-        #         frame = visualize_bbox(frame, bbox, (10, 245, 10))
+        if pipeline is not None:
+            label = pipeline(frame)
+            # print(label)
+            frame = visualize_label(frame, label)
         ret, jpeg = cv2.imencode('.jpg', frame)
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
@@ -50,8 +52,9 @@ def gen(camera, pipeline=None):
 def video_feed():
     print("We are in video feed")
     # face_detector = FaceDetectionModel("openvino_models/intel/face-detection-retail-0004/FP16")
+    model = ResTCN()
     print("We are in video feed and loaded model")
-    return Response(gen(VideoCamera()), #OpenVINOPipeline(face_detector)),
+    return Response(gen(VideoCamera(), TCNPipeline(model, torch.device("cuda" if torch.cuda.is_available() else "cpu"))),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @server.route("/placeholder_video_feed")
